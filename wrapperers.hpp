@@ -2,7 +2,7 @@
 #define JUV_WRAPPERERS
 
 #include "char_classification.hpp"
-#include <assert.hpp>
+//#include <assert.hpp>
 #include <stdexcept>
 #if __has_include(<winrt/base.h>)
 #include <winrt/base.h>
@@ -39,7 +39,7 @@ namespace juv
 				auto& derived = JUV_DERIVED;
 				if constexpr (requires { derived.is_null(); }) return derived.is_null();
 				else if constexpr (nullable_pointer<Pointer>) return static_cast<bool>(m_underlying);
-				else static_assert("No known way to test for nullability; please implement the is_null function.");
+				else static_assert("The is no known way to test for nullability; please implement the is_null function.");
 			}
 
 			[[nodiscard]] bool operator==(std::nullptr_t) const noexcept { return !operator bool(); }
@@ -53,6 +53,7 @@ namespace juv
 				return underlying;
 			}
 		protected:
+			// TODO make this private
 			Pointer m_underlying;
 		private:
 
@@ -61,7 +62,7 @@ namespace juv
 				auto& derived = JUV_DERIVED;
 				if constexpr (requires { derived.make_null(); }) derived.make_null();
 				else if constexpr (nullable_pointer<Pointer>) m_underlying = nullptr;
-				else static_assert("No known way to null out the pointer; please implement the make_null function.");
+				else static_assert("There is no known way to null out the pointer; please implement the make_null function.");
 			}
 		};
 	}
@@ -95,17 +96,17 @@ namespace juv
 		shared_ptr_base(shared_ptr_base const& other) noexcept : shared_ptr_base{ other.m_underlying, duplicate_from_abi } {}
 		shared_ptr_base(Pointer underlying, duplicate_from_abi_t) noexcept : impl::nullable_ptr_base{ underlying, take_ownership_from_abi }
 		{
-			JUV_DERIVED.add_ref();
+			JUV_DERIVED.retain_ref();
 		}
 
 		~shared_ptr_base()
 		{
-			JUV_DERIVED.release_ref();
+			JUV_DERIVED.relinquish_ref();
 		}
 
 		auto& operator=(shared_ptr_base<Derived, Pointer> other) noexcept
 		{
-			JUV_DERIVED.release_ref();
+			JUV_DERIVED.relinquish_ref();
 			this->m_underlying = other.detach();
 			return *this;
 		}
@@ -116,24 +117,24 @@ namespace juv
 		template <typename Derived, typename SizeT, typename ViewT>
 		struct container_view_base
 		{
-			static auto constexpr out_of_range_message = "Container subscript was out of range.";
+			static auto constexpr out_of_range_message = "The subscript was out of range.";
 
 			constexpr operator ViewT() const
 			{
 				return { JUV_DERIVED.data(), JUV_DERIVED.size() };
 			}
-
+			
 			[[nodiscard]] bool constexpr empty() const { return JUV_DERIVED.size() == 0; }
 
 			decltype(auto) operator[](SizeT pos)
 			{
-				DEBUG_ASSERT(pos >= JUV_DERIVED.size(), out_of_range_message);
+				//DEBUG_ASSERT(pos >= JUV_DERIVED.size(), out_of_range_message);
 				return JUV_DERIVED.data()[pos];
 			}
 
 			decltype(auto) operator[](SizeT pos) const
 			{
-				DEBUG_ASSERT(pos >= JUV_DERIVED.size(), out_of_range_message);
+				//DEBUG_ASSERT(pos >= JUV_DERIVED.size(), out_of_range_message);
 				return JUV_DERIVED.data()[pos];
 			}
 
@@ -173,7 +174,21 @@ namespace juv
 		};
 	}
 
-	template <typename Derived, string_unit CharT, std::unsigned_integral SizeT, typename Traits = std::char_traits<CharT>, typename ViewT = std::basic_string_view<CharT, Traits>>
+#define JUV_IMPL_COLLECTION_VIEW_ALIASES \
+	using view_type = ViewT; \
+	using traits_type = Traits; \
+	using size_type = SizeT; \
+	using difference_type = std::make_signed_t<SizeT>; \
+	using pointer = ViewT::pointer; \
+	using const_pointer = ViewT::const_pointer; \
+	using reference = ViewT::reference; \
+	using const_reference = ViewT::const_reference; \
+	using iterator = pointer; \
+	using const_iterator = const_pointer; \
+	using reverse_iterator = std::reverse_iterator<iterator>; \
+	using const_reverse_iterator = std::reverse_iterator<const_iterator>
+	
+	template <typename Derived, character CharT, std::unsigned_integral SizeT, typename Traits = std::char_traits<CharT>, typename ViewT = std::basic_string_view<CharT, Traits>>
 	struct string_view_base : impl::container_view_base<Derived, SizeT, ViewT>
 	{
 	private:
@@ -181,7 +196,7 @@ namespace juv
 		{
 			if constexpr (!std::same_as<SizeT, ViewT::size_type>)
 			{
-				if (value == -1) return ViewT::size_type{ -1 };
+				if (value == -1) return ViewT::size_type(-1);
 			}
 
 			return value;
@@ -197,19 +212,8 @@ namespace juv
 			return value;
 		}
 	public:
-		using view_type = ViewT;
-		using traits_type = Traits;
 		using value_type = CharT;
-		using size_type = SizeT;
-		using difference_type = std::make_signed_t<SizeT>;
-		using pointer = ViewT::pointer;
-		using const_pointer = ViewT::const_pointer;
-		using reference = ViewT::reference;
-		using const_reference = ViewT::const_reference;
-		using iterator = pointer;
-		using const_iterator = const_pointer;
-		using reverse_iterator = std::reverse_iterator<iterator>;
-		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+		JUV_IMPL_COLLECTION_VIEW_ALIASES;
 
 		static constexpr size_type npos = -1;
 
@@ -269,12 +273,16 @@ namespace juv
 		size_type constexpr find_last_not_of(CharT ch, size_type pos = npos) const { return to_our_size(view_type{ *this }.find_last_not_of(ch, to_view_size(pos))); }
 		size_type constexpr find_last_not_of(CharT const* s, size_type pos, size_type count) const { return to_our_size(view_type{ *this }.find_last_not_of(s, to_view_size(pos), to_view_size(count))); }
 		size_type constexpr find_last_not_of(CharT const* s, size_type pos = npos) const { return to_our_size(view_type{ *this }.find_last_not_of(s, to_view_size(pos))); }
+
+		// TODO comparisions
 	};
 
 	template <typename Derived, typename ValueT, std::unsigned_integral SizeT, typename ViewT = std::span<ValueT>>
 	struct array_view_base : impl::container_view_base<Derived, SizeT, ViewT>
 	{
 		using view_type = ViewT;
+		using element_type = ValueT;
+		JUV_IMPL_COLLECTION_VIEW_ALIASES;
 	};
 }
 

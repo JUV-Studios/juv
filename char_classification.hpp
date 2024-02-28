@@ -7,18 +7,18 @@
 namespace juv
 {
 	template <typename T>
-	concept code_page_unit = same_as_any<std::remove_cv_t<T>, char, wchar_t>;
+	concept code_page_character = same_as_any<std::remove_cv_t<T>, char, wchar_t>;
 
 	template <typename T>
-	concept utf_code_unit = same_as_any<std::remove_cv_t<T>, char8_t, char16_t, char32_t>;
+	concept unicode_character = same_as_any<std::remove_cv_t<T>, char8_t, char16_t, char32_t>;
 
 	template <typename T>
-	concept string_unit = code_page_unit <T> || utf_code_unit<T>;
+	concept character = code_page_character<T> || unicode_character<T>;
 
-	template <string_unit CharT>
+	template <character CharT>
 	struct make_unicode { using type = CharT; };
 
-	template <string_unit CharT>
+	template <character CharT>
 	using make_unicode_t = make_unicode<CharT>::type;
 
 	template <typename CharT> requires std::is_const_v<CharT>
@@ -33,10 +33,10 @@ namespace juv
 	template <>
 	struct make_unicode<wchar_t> { using type = std::conditional_t<sizeof(wchar_t) == 2, char16_t, char32_t>; static_assert(sizeof(wchar_t) == sizeof(type)); };
 
-	template <string_unit CharT>
+	template <character CharT>
 	struct make_code_page { using type = CharT; };
 
-	template <string_unit CharT>
+	template <character CharT>
 	using make_code_page_t = make_code_page<CharT>::type;
 
 	template <typename CharT> requires std::is_const_v<CharT>

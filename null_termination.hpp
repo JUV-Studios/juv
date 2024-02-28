@@ -1,4 +1,5 @@
 #ifndef JUV_NULL_TERMINATION
+
 #include "char_classification.hpp"
 
 namespace juv

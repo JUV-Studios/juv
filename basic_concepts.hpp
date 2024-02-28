@@ -13,7 +13,7 @@ namespace juv
 	concept convertible_to_any = (std::convertible_to<From, To> || ...);
 
 	// Reference: https://en.cppreference.com/w/cpp/named_req/NullablePointer.
-	// Note: the NullablePointer named requirements states that a value-initialised object of the type must produce a null value.w  Not only that we can't check for this with a concept, but some of our types also violate this.
+	// Note that the NullablePointer named requirement states that a value-initialised object of the type must produce a null value. Not only can't we check for this with a concept, some of our types also violate this.
 	template <typename T>
 	concept nullable_pointer = requires
 	{

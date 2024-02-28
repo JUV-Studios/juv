@@ -1,5 +1,6 @@
 #ifndef JUV_SEMANTIC_VERSION
 #define JUV_SEMANTIC_VERSION
+
 #include "cbase.h"
 
 typedef struct

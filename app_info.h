@@ -1,5 +1,6 @@
 #ifndef JUV_APP_INFO
 #define JUV_APP_INFO
+
 #include "immutable_string.h"
 #include "semantic_version.h"
 
@@ -10,11 +11,11 @@ typedef struct juv_app_info
 	struct
 	{
 		size_t version;
-		void (*add_ref)(void* self);
-		void (*release_ref)(void* self);
-		juv_immutable_u8string (*get_display_name)(void* self);
-		juv_immutable_u8string (*get_description)(void* self);
-		juv_immutable_u8string (*get_publisher_name)(void* self);
+		void (*retain_ref)(void* self);
+		void (*relinquish_ref)(void* self);
+		juv_immutable_uXstring (*get_display_name)(void* self);
+		juv_immutable_uXstring (*get_description)(void* self);
+		juv_immutable_uXstring (*get_publisher_name)(void* self);
 		juv_semantic_version (*get_version)(void* self);
 	} const* vtable;
 };
@@ -35,32 +36,32 @@ namespace juv
 		auto display_name() const
 		{
 			// TODO
-			get().vtable->get_name(get().vtable);
+			get().vtable->get_display_name(get().self);
 		}
 
 		auto description() const
 		{
-			get().vtable->get_description(get().vtable);
+			get().vtable->get_description(get().self);
 		}
 
 		auto publisher_name() const
 		{
-			get().vtable->get_publisher_name(get());
+			get().vtable->get_publisher_name(get().self);
 		}
 
 		auto version() const
 		{
-			return juv::wrap_semantic_version(get().vtable->get_version(get()));
+			return juv::wrap_semantic_version(get().vtable->get_version(get().self));
 		}
 	private:
-		void add_ref()
+		void retain_ref()
 		{
-			get().vtable->add_ref(get().self);
+			get().vtable->retain_ref(get().self);
 		}
 
-		void release_ref()
+		void relinquish_ref()
 		{
-			get().vtable->release_ref(get().self);
+			get().vtable->relinquish_ref(get().self);
 		}
 	};
 }

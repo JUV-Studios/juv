@@ -1,5 +1,6 @@
 #ifndef JUV_SAFE_NUMERICS
 #define JUV_SAFE_NUMERICS
+
 #include <concepts>
 #include <limits>
 #include <stdexcept>
